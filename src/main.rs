@@ -2,8 +2,8 @@ use std::{net::UdpSocket, io};
 use std::time;
 use std::thread;
 fn main() {
-    let socket  = UdpSocket::bind("127.0.0.1:7877").expect("couldn't bind to address");
-    let sock = UdpSocket::bind("127.0.0.1:21544").expect("couldnt bind to address");
+    let socket  = UdpSocket::bind("10.40.33.121:7877").expect("couldn't bind to address");
+    let sock = UdpSocket::bind("10.40.33.121:7878").expect("couldnt bind to address");
     
     let thread_join_handle = thread::spawn(move || {
         generate_request(&socket);
@@ -29,7 +29,7 @@ fn generate_request(socket : &UdpSocket){
         .read_line(&mut request)
         .expect("Failed to read input");
         // send to agent the request 
-        socket.send_to(request.as_bytes(), "127.0.0.1:21544").expect("couldn't send data"); 
+        socket.send_to(request.as_bytes(), "10.40.33.121:7878").expect("couldn't send data"); 
         let respone= socket.recv_from(&mut buf);
         match respone {
             Ok((_,_src_addr)) => {
@@ -43,7 +43,7 @@ fn generate_request(socket : &UdpSocket){
 }
 
 fn agent(socket : &UdpSocket){  // recieve from the client and send to the server based on turn
-    let server_list = ["127.0.0.1:7878","127.0.0.1:7879","127.0.0.1:7880"];
+    let server_list = ["10.40.33.121:7879","10.40.46.106:7878"];
     let mut  i = 0;
 
     loop 
@@ -59,12 +59,17 @@ fn agent(socket : &UdpSocket){  // recieve from the client and send to the serve
             Ok(_) => println!("sent to server {}",i),
             Err(_) =>println!("server not responding")
         }
-        if i >3 {i=0};
-        i = i + 1 ;
+        if i >1 {
+            i=0;
+        }
+        else {
+            i = i +1;
+        }
+        
 
 
         let reply = String::from("Ack");
-        let reply =reply.as_bytes();
+        let reply = reply.as_bytes();
         socket.send_to(reply, src_addr).expect("couldn't send data");
         println!("leaving agent");
     } 
