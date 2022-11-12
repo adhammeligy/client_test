@@ -34,7 +34,7 @@ fn generate_request(socket : &UdpSocket){
         match respone {
             Ok((_,_src_addr)) => {
                 let _reply = String::from_utf8(buf.to_vec()).unwrap();
-                println!("recieved from client ")
+                println!("recieved from agent ")
             }
             Err(_) =>()
         }
@@ -50,7 +50,7 @@ fn agent(socket : &UdpSocket){  // recieve from the client and send to the serve
     {
         let mut buf = [0;1000];
         let (_, src_addr) = socket.recv_from(&mut buf).expect("Didn't receive data");
-        println!("Recieved successsfully from {}",src_addr);
+        println!("agent recieved  successsfully from client : {}",src_addr);
         let client_request = String::from_utf8(buf.to_vec()).unwrap();
         println!("agent recieved client request : {}",client_request);
         // now we need to select which server to send to 
