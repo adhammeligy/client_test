@@ -45,32 +45,39 @@ fn generate_request(socket : &UdpSocket){
 fn agent(socket : &UdpSocket){  // recieve from the client and send to the server based on turn
     let server_list = ["10.40.33.121:7879","10.40.46.106:7878"];
     let mut  i = 0;
-
+    let num_servers = 2;
     loop 
     {
+        
         let mut buf = [0;1000];
+        
         let (_, src_addr) = socket.recv_from(&mut buf).expect("Didn't receive data");
+        
         println!("agent recieved  successsfully from client : {}",src_addr);
         let client_request = String::from_utf8(buf.to_vec()).unwrap();
         println!("agent recieved client request : {}",client_request);
         // now we need to select which server to send to 
-        let  x = socket.send_to(&mut buf, server_list[i]);
+        let  x = socket.send_to(&mut buf, server_list[i%num_servers]);
         match x {
-            Ok(_) => println!("sent to server {}",i),
+            Ok(_) => println!("sent to server {}",i%num_servers),
             Err(_) =>println!("server not responding")
         }
-        if i >1 {
-            i=0;
-        }
-        else {
-            i = i +1;
+       
+        i = i +1;
+
+        let duration = time::Duration::from_secs(10);
+        socket.set_read_timeout(Some(duration)).unwrap();
+
+        let mangatos = socket.recv_from(&mut buf);
+        match mangatos {
+            Ok((_, _src_addr)) =>  {let reply = String::from("Ack");
+            let reply = reply.as_bytes();
+            socket.send_to(reply, src_addr).expect("couldn't send data");},
+            Err(_) => {let reply = String::from("Request dropped");
+            let reply = reply.as_bytes();
+            socket.send_to(reply, src_addr).expect("couldn't send data");}
         }
         
-
-
-        let reply = String::from("Ack");
-        let reply = reply.as_bytes();
-        socket.send_to(reply, src_addr).expect("couldn't send data");
         println!("leaving agent");
     } 
         
