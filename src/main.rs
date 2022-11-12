@@ -1,4 +1,4 @@
-use std::{net::UdpSocket, io};
+use std::{net::UdpSocket};
 use std::time;
 use std::thread;
 fn main() {
@@ -24,11 +24,9 @@ fn generate_request(socket : &UdpSocket){
         let duration = time::Duration::from_secs(1);
         socket.set_read_timeout(Some(duration)).unwrap();
         let mut buf = [0;1000];
-        let mut request = String::new();
-        io::stdin()
-        .read_line(&mut request)
-        .expect("Failed to read input");
-        // send to agent the request 
+        let request = String::from("hi i am meligy");
+        let timer = time::Duration::from_secs(5);
+        
         socket.send_to(request.as_bytes(), "10.40.33.121:7878").expect("couldn't send data"); 
         let respone= socket.recv_from(&mut buf);
         match respone {
@@ -38,14 +36,15 @@ fn generate_request(socket : &UdpSocket){
             }
             Err(_) =>()
         }
+        thread::sleep(timer);
     } 
         
 }
 
 fn agent(socket : &UdpSocket){  // recieve from the client and send to the server based on turn
-    let server_list = ["10.40.33.121:7879","10.40.46.106:7878"];
+    let server_list = ["10.40.33.121:7879","10.40.46.106:7878","0.0.0.0:7880"];
     let mut  i = 0;
-    let num_servers = 2;
+    let num_servers = 3;
     loop 
     {
         
@@ -60,12 +59,12 @@ fn agent(socket : &UdpSocket){  // recieve from the client and send to the serve
         let  x = socket.send_to(&mut buf, server_list[i%num_servers]);
         match x {
             Ok(_) => println!("sent to server {}",i%num_servers),
-            Err(_) =>println!("server not responding")
+            Err(_) =>()
         }
        
         i = i +1;
 
-        let duration = time::Duration::from_secs(10);
+        let duration = time::Duration::from_secs(6);
         socket.set_read_timeout(Some(duration)).unwrap();
 
         let mangatos = socket.recv_from(&mut buf);
