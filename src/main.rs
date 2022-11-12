@@ -2,11 +2,11 @@ use std::{net::UdpSocket, io};
 use std::time;
 use std::thread;
 fn main() {
-    let socket  = UdpSocket::bind("127.0.0.1:7879").expect("couldn't bind to address");
+    let socket  = UdpSocket::bind("127.0.0.1:7877").expect("couldn't bind to address");
     let sock = UdpSocket::bind("127.0.0.1:21544").expect("couldnt bind to address");
     
     let thread_join_handle = thread::spawn(move || {
-        send_request(&socket);
+        generate_request(&socket);
     });
 
     let thread_join_handle2 = thread::spawn(move || {
@@ -19,7 +19,7 @@ fn main() {
 
 }
 
-fn send_request(socket : &UdpSocket){
+fn generate_request(socket : &UdpSocket){
     loop {
         let duration = time::Duration::from_secs(1);
         socket.set_read_timeout(Some(duration)).unwrap();
@@ -28,22 +28,47 @@ fn send_request(socket : &UdpSocket){
         io::stdin()
         .read_line(&mut request)
         .expect("Failed to read input");
-        socket.send_to(request.as_bytes(), "127.0.0.1:21543").expect("couldn't send data");
+        // send to agent the request 
+        socket.send_to(request.as_bytes(), "127.0.0.1:21544").expect("couldn't send data"); 
         let respone= socket.recv_from(&mut buf);
         match respone {
             Ok((_,_src_addr)) => {
-                let reply = String::from_utf8(buf.to_vec()).unwrap();
-                println!("recieved from server : {}",reply)
+                let _reply = String::from_utf8(buf.to_vec()).unwrap();
+                println!("recieved from client ")
             }
             Err(_) =>()
         }
-        } 
+    } 
         
 }
 
-fn agent(socket : &UdpSocket){
-    let duration = time::Duration::from_secs(1);
-    socket.set_read_timeout(Some(duration)).unwrap();
-    let mut buf = [0;1000];
+fn agent(socket : &UdpSocket){  // recieve from the client and send to the server based on turn
+    let server_list = ["127.0.0.1:7878","127.0.0.1:7879","127.0.0.1:7880"];
+    let mut  i = 0;
+
+    loop 
+    {
+        let mut buf = [0;1000];
+        let (_, src_addr) = socket.recv_from(&mut buf).expect("Didn't receive data");
+        println!("Recieved successsfully from {}",src_addr);
+        let client_request = String::from_utf8(buf.to_vec()).unwrap();
+        println!("agent recieved client request : {}",client_request);
+        // now we need to select which server to send to 
+        let  x = socket.send_to(&mut buf, server_list[i]);
+        match x {
+            Ok(_) => println!("sent to server {}",i),
+            Err(_) =>println!("server not responding")
+        }
+        if i >3 {i=0};
+        i = i + 1 ;
+
+
+        let reply = String::from("Ack");
+        let reply =reply.as_bytes();
+        socket.send_to(reply, src_addr).expect("couldn't send data");
+        println!("leaving agent");
+    } 
+        
+        //send ack to client after executing request  
     
 }
