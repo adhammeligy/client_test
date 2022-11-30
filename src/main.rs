@@ -81,23 +81,20 @@ fn agent(agent_socket : &UdpSocket, awake_list_fn : &Arc<Mutex<[bool;3]>>){  // 
         let client_request = String::from_utf8(buf.to_vec()).unwrap();
         println!("agent recieved client request : {}",client_request);
         
-        // let awake_list1 = {
-        //     let awake_list1 = awake_list_fn.lock().unwrap();
-        //     *awake_list1
-        // };
+        let awake_list1 = {
+            let awake_list1 = awake_list_fn.lock().unwrap();
+            *awake_list1
+        };
         
-        // // skip server that are asleep 
-        // if !awake_list1[i%num_servers] {
-        //     i = i + 1;
-        // }
+        // skip server that are asleep 
+        if !awake_list1[i%num_servers] {
+            i = i + 1;
+        }
 
        
         agent_socket.send_to(&mut buf, &server_list[i%num_servers]).unwrap();
-        // let  x = agent_socket.send_to(&mut buf, &server_list[i%num_servers]);
-        // match x {
-        //     Ok(_) => println!("sent to server {}",i%num_servers),
-        //     Err(_) =>()
-        // }
+        
+        println!("sent to server {}",i%num_servers);
        
         i = i +1;
 
@@ -126,6 +123,8 @@ fn agent_to_server(server_socket : &UdpSocket, awake_list_fn : &Arc<Mutex<[bool;
     let mut buf = [0;1000];
     let my_local_ip = local_ip().unwrap();
     let server_list = [my_local_ip.to_string()+":6000","10.40.55.44:6000".to_string()];
+    
+
     loop {
         let (_, srv_addr) = server_socket.recv_from(&mut buf).expect("Didn't receive data");
 
@@ -136,20 +135,30 @@ fn agent_to_server(server_socket : &UdpSocket, awake_list_fn : &Arc<Mutex<[bool;
         {
             if srv_addr.to_string() == server_list[i]
             {
-                let server_status = String::from_utf8(buf.to_vec()).unwrap();
+                let mut server_status = String::from_utf8(buf.to_vec()).unwrap();
+                server_status = server_status.trim_matches(char::from(0)).to_string();
                 let awake = String::from("awake");
                 let sleep = String::from("sleep");
 
                 println!("{} is {} ##########&&&&&&&&&&&&&**********", srv_addr, server_status);
-                if server_status.ne(&awake) 
+                if server_status.eq(&sleep) 
                 {
-                    println!("{} is awake #######################################", srv_addr);
-                }
-                else if server_status.ne(&sleep){
                     println!("{} is asleep #######################################", srv_addr);
+                    
+                    {
+                        let mut awake_list1 = awake_list_fn.lock().unwrap();
+                        awake_list1[i]=false;
+                    }
+                }
+                else if server_status.eq(&awake){
+                    println!("{} is awake #######################################", srv_addr);
+                    {
+                        let mut awake_list1 = awake_list_fn.lock().unwrap();
+                        awake_list1[i]=true;
+                    }
                 }
                 else {
-                    println!("manga");
+                    println!("manga %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
                 }
                 break;
             }
