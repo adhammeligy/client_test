@@ -66,9 +66,9 @@ fn generate_request(socket : &UdpSocket){
 
 fn agent(agent_socket : &UdpSocket, awake_list_fn : &Arc<Mutex<[bool;3]>>){  // recieve from the client and send to the server based on turn
     let my_local_ip = local_ip().unwrap();
-    let server_list = [my_local_ip.to_string()+":21543","10.40.55.44:21543".to_string()];
+    let server_list = [my_local_ip.to_string()+":21543","10.40.55.44:21543".to_string(),"10.40.47.17:21543".to_string()];
     let mut  i = 0;
-    let num_servers = 2;
+    let num_servers = 3;
     loop 
     {
         
@@ -122,7 +122,7 @@ fn agent(agent_socket : &UdpSocket, awake_list_fn : &Arc<Mutex<[bool;3]>>){  // 
 fn agent_to_server(server_socket : &UdpSocket, awake_list_fn : &Arc<Mutex<[bool;3]>>) {
     let mut buf = [0;1000];
     let my_local_ip = local_ip().unwrap();
-    let server_list = [my_local_ip.to_string()+":6000","10.40.55.44:6000".to_string()];
+    let server_list = [my_local_ip.to_string()+":6000","10.40.55.44:6000".to_string(),"10.40.47.17:6000".to_string()];
     
 
     loop {
