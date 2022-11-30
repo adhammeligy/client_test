@@ -1,5 +1,5 @@
 use std::{net::UdpSocket};
-use std::time;
+use std::time::{Duration, SystemTime};
 use std::thread;
 use std::sync::{Arc, Mutex};
 use local_ip_address::local_ip;
@@ -8,16 +8,23 @@ fn main() {
     let my_local_ip = local_ip().unwrap();
 
     println!("This is my local IP address: {:?}", my_local_ip);
-    let client_socket  = UdpSocket::bind(my_local_ip.to_string()+":7881").expect("couldn't bind to address");
+    
     let agent_socket = UdpSocket::bind(my_local_ip.to_string()+":7880").expect("couldnt bind to address");
     let server_socket = UdpSocket::bind(my_local_ip.to_string()+":7882").expect("couldnt bind to address");
-
+    let response_socket = UdpSocket::bind(my_local_ip.to_string()+":7884").expect("couldnt bind to address");
     let awake_list = Arc::new(Mutex::new([true, true, true]));
 
-    
-    let thread_join_handle = thread::spawn(move || {
-        generate_request(&client_socket);
-    });
+    for i in 1500..2000
+    {
+        thread::spawn(move || {
+            let port = format!("{}",i);
+            let client_socket  = UdpSocket::bind(my_local_ip.to_string()+":"+&port).expect("couldn't bind to address");
+            generate_request(&client_socket);
+        });
+    }
+    // let thread_join_handle = thread::spawn(move || {
+    //     generate_request(&client_socket);
+    // });
 
     let awake_list_main = Arc::clone(&awake_list);
 
@@ -32,10 +39,14 @@ fn main() {
     let thread_join_handle3 = thread::spawn(move || {
         agent_to_server(&server_socket, &awake_list_main);
     });
+    let thread_join_handle4 = thread::spawn(move || {
+        receive_responses(&response_socket);
+    });
 
-    let _res = thread_join_handle.join();
+    // let _res = thread_join_handle.join();
     thread_join_handle2.join().unwrap();
     thread_join_handle3.join().unwrap();
+    thread_join_handle4.join().unwrap();
 
 
 
@@ -43,12 +54,16 @@ fn main() {
 
 fn generate_request(socket : &UdpSocket){
     let my_local_ip = local_ip().unwrap();
+    let mut count = 0;
+    let mut time::SystemTime;
+    let mut avg_time = 0;
     loop {
-        let duration = time::Duration::from_secs(1);
+        let start = SystemTime::now();
+        let duration = Duration::from_secs(1);
         socket.set_read_timeout(Some(duration)).unwrap();
         let mut buf = [0;1000];
-        let request = String::from("hi i am abuzaid");
-        let timer = time::Duration::from_secs(1);
+        let request = String::from("hi i am thesis");
+        let timer = Duration::from_secs(1);
         
         socket.send_to(request.as_bytes(), my_local_ip.to_string()+":7880").expect("couldn't send data"); 
         let respone= socket.recv_from(&mut buf);
@@ -59,14 +74,19 @@ fn generate_request(socket : &UdpSocket){
             }
             Err(_) =>{println!("Request Dropped");}
         }
+        let finish = start.elapsed();
+        count = count + 1;
+        time = time + finish;
+        avg_time = time / count;
+        println!("avg time = {}", avg_time);
         thread::sleep(timer);
     } 
         
 }
 
 fn agent(agent_socket : &UdpSocket, awake_list_fn : &Arc<Mutex<[bool;3]>>){  // recieve from the client and send to the server based on turn
-    let my_local_ip = local_ip().unwrap();
-    let server_list = [my_local_ip.to_string()+":21543","10.40.55.44:21543".to_string(),"10.40.47.17:21543".to_string()];
+    // let my_local_ip = local_ip().unwrap();
+    let server_list = ["192.168.8.121:21543","192.168.8.122:21543","192.168.8.123:21543"];
     let mut  i = 0;
     let num_servers = 3;
     loop 
@@ -98,16 +118,7 @@ fn agent(agent_socket : &UdpSocket, awake_list_fn : &Arc<Mutex<[bool;3]>>){  // 
        
         i = i +1;
 
-        let duration = time::Duration::from_secs(15);
-        agent_socket.set_read_timeout(Some(duration)).unwrap();
-
-        let mangatos = agent_socket.recv_from(&mut buf);
-        match mangatos {
-            Ok((_, _src_addr)) =>  {let reply = String::from("Ack");
-            let reply = reply.as_bytes();
-            agent_socket.send_to(reply, src_addr).expect("couldn't send data");},
-            Err(_) => ()
-        }
+        
         
         println!("leaving agent");
        
@@ -121,9 +132,8 @@ fn agent(agent_socket : &UdpSocket, awake_list_fn : &Arc<Mutex<[bool;3]>>){  // 
 
 fn agent_to_server(server_socket : &UdpSocket, awake_list_fn : &Arc<Mutex<[bool;3]>>) {
     let mut buf = [0;1000];
-    let my_local_ip = local_ip().unwrap();
-    let server_list = [my_local_ip.to_string()+":6000","10.40.55.44:6000".to_string(),"10.40.47.17:6000".to_string()];
-    
+    // let my_local_ip = local_ip().unwrap();
+    let server_list = ["192.168.8.121:6000","192.168.8.122:6000","192.168.8.123:6000"];
 
     loop {
         let (_, srv_addr) = server_socket.recv_from(&mut buf).expect("Didn't receive data");
@@ -167,38 +177,42 @@ fn agent_to_server(server_socket : &UdpSocket, awake_list_fn : &Arc<Mutex<[bool;
     }
     
 }
-// fn agent_to_server(server_socket : &UdpSocket, awake_list_fn : &Arc<Mutex<[bool;3]>>){
-//     let my_local_ip = local_ip().unwrap();
-//     let mut buf = [0;1000];
 
-//     let (_, srv_addr) = server_socket.recv_from(&mut buf).expect("Didn't receive data");
 
-//     let server_state = String::from_utf8(buf.to_vec()).unwrap();
+fn receive_responses(response_socket : &UdpSocket)
+{
+    let mut total_requests = 0;
+    let mut completed_requests = 0;
+    let mut dropped_requests = 0;
+    let server_list = ["192.178.8.121:21543","192.178.8.122:21543","192.178.8.123:21543"];
+    let mut per_server_requests = [0,0,0];
+    let mut buf = [0;1000];
+    loop
+    {
+        let duration = Duration::from_secs(1);
+        response_socket.set_read_timeout(Some(duration)).unwrap();
 
-//     let server_list = [my_local_ip.to_string()+":6000","10.40.55.44:6000".to_string()];
-//     let mut  i = 0;
-//     let num_servers = 2;
-
-//     // let mut awake_list1 = awake_list_fn.lock().unwrap();
-
-//         while i < num_servers {
-//             if srv_addr.to_string() == server_list[i]
-//             {
-//                 if server_state == "Goodnight" {
-//                     println!("Server is now sleeping : {}",srv_addr);
-//                     {
-//                         let mut awake_list1 = awake_list_fn.lock().unwrap();
-//                         awake_list1[i]=false;
-//                     }
-//                 }
-//                 else {
-//                     println!("Server is now awake : {}",srv_addr);
-//                     {
-//                         let mut awake_list1 = awake_list_fn.lock().unwrap();
-//                         awake_list1[i]=true;
-//                     }
-//                 }                
-//             }
-//             i=i+1;
-//         }
-// }
+        let mangatos = response_socket.recv_from(&mut buf);
+        match mangatos {
+            Ok((_, src_addr)) =>  {
+                let reply = String::from("Ack");
+                let reply = reply.as_bytes();
+                response_socket.send_to(reply, src_addr).expect("couldn't send data");
+                total_requests = total_requests + 1;
+                completed_requests = completed_requests+1;
+                for i in 0..server_list.len()
+                {
+                    if src_addr.to_string() == server_list[i]
+                    {
+                        per_server_requests[i] = per_server_requests[i] + 1;
+                        break;
+                    }
+                }
+            },
+            Err(_) => {
+                dropped_requests = dropped_requests + 1;
+                total_requests = total_requests + 1;
+            }
+        }
+    }
+}
