@@ -1,0 +1,60 @@
+Total =100
+Completed =100
+Dropped =0
+Success Rate =1%
+Average Time per Request =0.07
+Server 1 requests = 100
+Server 1 load = 1
+Server 2 requests = 0
+Server 2 load = 0
+Server 3 requests = 0
+Server 3 load = 0
+
+Total =200
+Completed =167
+Dropped =33
+Success Rate =0.835%
+Average Time per Request =0.235
+Server 1 requests = 167
+Server 1 load = 0.835
+Server 2 requests = 0
+Server 2 load = 0
+Server 3 requests = 0
+Server 3 load = 0
+
+Total =300
+Completed =167
+Dropped =133
+Success Rate =0.5566666666666666%
+Average Time per Request =0.15666666666666668
+Server 1 requests = 167
+Server 1 load = 0.5566666666666666
+Server 2 requests = 0
+Server 2 load = 0
+Server 3 requests = 0
+Server 3 load = 0
+
+Total =400
+Completed =167
+Dropped =233
+Success Rate =0.4175%
+Average Time per Request =0.1175
+Server 1 requests = 167
+Server 1 load = 0.4175
+Server 2 requests = 0
+Server 2 load = 0
+Server 3 requests = 0
+Server 3 load = 0
+
+Total =500
+Completed =167
+Dropped =333
+Success Rate =0.334%
+Average Time per Request =0.094
+Server 1 requests = 167
+Server 1 load = 0.334
+Server 2 requests = 0
+Server 2 load = 0
+Server 3 requests = 0
+Server 3 load = 0
+
