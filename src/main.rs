@@ -46,7 +46,7 @@ fn main() {
     let mut file1 = File::create("statistics.txt").expect("Error encountered while creating file!");
 
     let thread_join_handle4 = thread::spawn(move || {
-        receive_responses(&response_agent_socket,&response_srv_socket, &file1);
+        receive_responses(&response_agent_socket,&response_srv_socket, &mut file1);
     });
 
     for i in 1500..2000
@@ -56,9 +56,9 @@ fn main() {
             //let path = String::from("_");
             let port = format!("{}",i);
             //println!()
-            let mut file = File::create("genreq/".to_string()+ &port + ".txt").expect("Error encountered while creating file!");
+            //let mut file = File::create("genreq/".to_string()+ &port + ".txt").expect("Error encountered while creating file!");
             let client_socket  = UdpSocket::bind(my_local_ip.to_string()+":"+&port).expect("couldn't bind to address");
-            generate_request(&client_socket, &file);
+            generate_request(&client_socket);
         });
         // thread::sleep(timer);
     }
@@ -71,18 +71,18 @@ fn main() {
 
 }
 
-fn generate_request(socket : &UdpSocket, mut file : &File){
+fn generate_request(socket : &UdpSocket){
     let my_local_ip = local_ip().unwrap();
-    let mut count: f64 = 0.0;
-    let mut time: f64 = 0.0;
-    let mut avg_time: f64 = 0.0;
+    //let mut count: f64 = 0.0;
+    //let mut time: f64 = 0.0;
+    //let mut avg_time: f64 = 0.0;
     loop {
-        let start = SystemTime::now();
+        //let start = SystemTime::now();
         let duration = Duration::from_millis(10);
         socket.set_read_timeout(Some(duration)).unwrap();
         let mut buf = [0;1000];
-        let request = String::from("hi i am thesis");
-        let timer = Duration::from_secs(5);
+        let request = String::from("hi i am thesis windows");
+        let timer = Duration::from_secs(3);
         
         socket.send_to(request.as_bytes(), my_local_ip.to_string()+":7880").expect("couldn't send data"); 
         let respone= socket.recv_from(&mut buf);
@@ -93,28 +93,28 @@ fn generate_request(socket : &UdpSocket, mut file : &File){
             }
             Err(_) =>{println!("Request Dropped");}
         }
-        let mut finish: f64 = 0.0;
+        //let mut finish: f64 = 0.0;
         
-        match start.elapsed() {
-            Ok(elapsed) => {
-                finish = elapsed.as_millis() as f64;
-            }
-            Err(e) => {
-                println!("Error 3'areeb : {}", e);
-            }
-        }
+        //match start.elapsed() {
+        //    Ok(elapsed) => {
+        //        finish = elapsed.as_millis() as f64;
+        //    }
+        //    Err(e) => {
+        //        println!("Error 3'areeb : {}", e);
+        //    }
+        //}
 
-        count = count + 1.0;
-        time = time + finish;
-        avg_time = time / count;
-        // println!("avg time = {}", avg_time);
+        //count = count + 1.0;
+        //time = time + finish;
+        //avg_time = time / count;
+        //// println!("avg time = {}", avg_time);
         
-        if count % 2.0 == 0.0 {
-            //write to file
-            let avg_str = format!("Average request time ={}", avg_time);
-            file.write_all(avg_str.as_bytes()).unwrap();
-            file.write_all(b"\n").unwrap();
-        }
+        //if count % 2.0 == 0.0 {
+        //    //write to file
+        //    let avg_str = format!("Average request time ={}", avg_time);
+        //    file.write_all(avg_str.as_bytes()).unwrap();
+        //    file.write_all(b"\n").unwrap();
+        //}
         thread::sleep(timer);
     } 
         
@@ -122,7 +122,7 @@ fn generate_request(socket : &UdpSocket, mut file : &File){
 
 fn agent(agent_socket : &UdpSocket, awake_list_fn : &Arc<Mutex<[bool;3]>>){  // recieve from the client and send to the server based on turn
     let my_local_ip = local_ip().unwrap();
-    let server_list = ["10.40.40.45:21543","192.168.8.122:21543","192.168.8.123:21543"];
+    let server_list = ["10.40.40.45:21543","10.40.47.17:21543","10.40.37.119:21543"];
     let mut  i = 0;
     let num_servers = 3;
     loop 
@@ -134,7 +134,7 @@ fn agent(agent_socket : &UdpSocket, awake_list_fn : &Arc<Mutex<[bool;3]>>){  // 
         let (_, src_addr) = agent_socket.recv_from(&mut buf).expect("Didn't receive data");
         
         // println!("agent recieved  successsfully from client : {}",src_addr);
-        let client_request = String::from_utf8(buf.to_vec()).unwrap();
+        //let client_request = String::from_utf8(buf.to_vec()).unwrap();
         // println!("agent recieved client request : {}",client_request);
         
         let awake_list1 = {
@@ -172,7 +172,7 @@ fn agent(agent_socket : &UdpSocket, awake_list_fn : &Arc<Mutex<[bool;3]>>){  // 
 fn agent_to_server(server_socket : &UdpSocket, awake_list_fn : &Arc<Mutex<[bool;3]>>) {
     let mut buf = [0;1000];
     // let my_local_ip = local_ip().unwrap();
-    let server_list = ["192.168.8.121:6000","192.168.8.122:6000","192.168.8.123:6000"];
+    let server_list = ["10.40.40.45:6000","10.40.47.17:6000","10.40.37.119:6000"];
 
     loop {
         let (_, srv_addr) = server_socket.recv_from(&mut buf).expect("Didn't receive data");
@@ -218,7 +218,7 @@ fn agent_to_server(server_socket : &UdpSocket, awake_list_fn : &Arc<Mutex<[bool;
 }
 
 
-fn receive_responses(agent_socket : &UdpSocket,response_socket : &UdpSocket, mut file : &File)
+fn receive_responses(agent_socket : &UdpSocket,response_socket : &UdpSocket, file : &mut File)
 {
     let my_local_ip = local_ip().unwrap();
 
@@ -229,7 +229,7 @@ fn receive_responses(agent_socket : &UdpSocket,response_socket : &UdpSocket, mut
     let mut total_requests = 0;
     let mut completed_requests = 0;
     let mut dropped_requests = 0;
-    let server_list = ["10.40.40.45:21543","192.178.8.122:21543","192.178.8.123:21543"];
+    let server_list = ["10.40.40.45:21543","10.40.47.17:21543","10.40.37.119:21543"];
     let mut per_server_requests = [0,0,0];
     //response_socket.connect(my_local_ip.to_string()+":21543").unwrap();
     agent_socket.connect(my_local_ip.to_string()+":7880").unwrap();
@@ -295,7 +295,7 @@ fn receive_responses(agent_socket : &UdpSocket,response_socket : &UdpSocket, mut
             }
         }
         // println!("################################################################");
-        if total_requests % 100 == 0 {
+        if total_requests % 1000 == 0 {
             //write to file
             //add avg time per request here
             avg_time = time / total_requests as f64;

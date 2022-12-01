@@ -1,4 +1,0 @@
-Average request time =15
-Average request time =11.75
-Average request time =7.833333333333333
-Average request time =5.875
