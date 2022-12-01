@@ -24,17 +24,7 @@ fn main() {
     let response_srv_socket = UdpSocket::bind(my_local_ip.to_string()+":7885").expect("couldnt bind to address");
     let awake_list = Arc::new(Mutex::new([true, true, true]));
 
-    for i in 1500..2000
-    {
-        thread::spawn(move || {
-            //let path = String::from("_");
-            let port = format!("{}",i);
-            //println!()
-            let mut file = File::create("genreq/".to_string()+ &port + ".txt").expect("Error encountered while creating file!");
-            let client_socket  = UdpSocket::bind(my_local_ip.to_string()+":"+&port).expect("couldn't bind to address");
-            generate_request(&client_socket, &file);
-        });
-    }
+    
     // let thread_join_handle = thread::spawn(move || {
     //     generate_request(&client_socket);
     // });
@@ -59,6 +49,19 @@ fn main() {
         receive_responses(&response_agent_socket,&response_srv_socket, &file1);
     });
 
+    for i in 1500..2000
+    {
+        // let timer = Duration::from_secs(1);
+        thread::spawn(move || {
+            //let path = String::from("_");
+            let port = format!("{}",i);
+            //println!()
+            let mut file = File::create("genreq/".to_string()+ &port + ".txt").expect("Error encountered while creating file!");
+            let client_socket  = UdpSocket::bind(my_local_ip.to_string()+":"+&port).expect("couldn't bind to address");
+            generate_request(&client_socket, &file);
+        });
+        // thread::sleep(timer);
+    }
     // let _res = thread_join_handle.join();
     thread_join_handle2.join().unwrap();
     thread_join_handle3.join().unwrap();
@@ -79,7 +82,7 @@ fn generate_request(socket : &UdpSocket, mut file : &File){
         socket.set_read_timeout(Some(duration)).unwrap();
         let mut buf = [0;1000];
         let request = String::from("hi i am thesis");
-        let timer = Duration::from_secs(13);
+        let timer = Duration::from_secs(5);
         
         socket.send_to(request.as_bytes(), my_local_ip.to_string()+":7880").expect("couldn't send data"); 
         let respone= socket.recv_from(&mut buf);
@@ -240,7 +243,7 @@ fn receive_responses(agent_socket : &UdpSocket,response_socket : &UdpSocket, mut
         let mut reply = String::from_utf8(buffer.to_vec()).unwrap();
         reply = reply.trim_matches(char::from(0)).to_string();
         //reply is the client ip address
-        let duration = Duration::from_millis(15);
+        let duration = Duration::from_millis(10);
         response_socket.set_read_timeout(Some(duration)).unwrap();
         //receive ACK from server
         let mangatos = response_socket.recv_from(&mut buf);
